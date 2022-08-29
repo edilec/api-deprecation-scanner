@@ -1,0 +1,17 @@
+{
+  "name": "api-deprecation-scanner",
+  "version": "0.0.0",
+  "description": "Find deprecated endpoints and consumers before a version is removed.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/edilec/api-deprecation-scanner"
+  }
+}
