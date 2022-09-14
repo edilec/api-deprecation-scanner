@@ -76,7 +76,7 @@ export function describeCoverageGaps(sink, file, inventory, spec, now, policy, l
  * truncation inside this function -- is what bounds the total.
  */
 export function joinUsage(sink, files, spec, inventory, context) {
-  const { now, policy, coverageComplete, deadline } = context
+  const { now, policy, coverageGaps, deadline } = context
   const usage = new Map()
   let unknownOperations = 0
   let timedOut = false
@@ -122,6 +122,17 @@ export function joinUsage(sink, files, spec, inventory, context) {
       else rows.push({ consumer, call })
     }
   }
+
+  /**
+   * Completeness is decided here, after the first pass, and not before it.
+   *
+   * A call naming an operation this document does not declare is a hole in the
+   * coverage exactly as a missing consumer is: that consumer was calling
+   * *something*, and it may have been the very operation about to be reported
+   * as unused. Deciding completeness before the first pass would let such a
+   * run claim an operation is unused on evidence that was never resolved.
+   */
+  const coverageComplete = coverageGaps === 0 && unknownOperations === 0
 
   let links = 0
   let expiredLinks = 0
@@ -247,7 +258,9 @@ function reportOperationMetadata(sink, file, operation) {
  * error and no claim at all.
  *
  * Neither branch marks the run incomplete. The unknown branch is only reached
- * when the coverage is already short, and every way it can be short has
+ * when the coverage is already short, and every way it can be short -- a
+ * missing consumer, a stale window, a mismatched version, an entry that did
+ * not compile, a call naming an operation the document does not declare -- has
  * already raised its own error and set that flag; a second flag here would
  * backstop the first, so removing either would change nothing observable and
  * no test could fail when it went.

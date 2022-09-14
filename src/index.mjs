@@ -565,6 +565,7 @@ export async function scanDeprecations(options = {}) {
       // one of them would change nothing observable and no test could fail.
       if (spec.declared !== spec.operations.size) state.incomplete = true
       if (spec.unsupported > 0) state.incomplete = true
+      if (spec.truncated) state.incomplete = true
       for (const operation of spec.operations.values()) {
         if (operation.unknownEvidence) state.incomplete = true
       }
@@ -597,7 +598,7 @@ export async function scanDeprecations(options = {}) {
     const joined = joinUsage(sink, files, spec, inventory, {
       now,
       policy,
-      coverageComplete: gaps.length === 0,
+      coverageGaps: gaps.length,
       deadline,
     })
     state.links = joined.links

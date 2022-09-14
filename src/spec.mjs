@@ -79,6 +79,11 @@ const MAX_DOCS_LENGTH = 300
  * each individual refusal set the flag as well would leave every one of them
  * backstopped by the others, so removing any single flag would change nothing
  * observable and no test could fail when it went.
+ *
+ * `truncated` is separate because the operation limit stops the walk *before*
+ * a slot is reached, so nothing is refused and `declared` stays equal to the
+ * number compiled. Without its own flag a limit that cut the document short
+ * would report a complete-looking `fail`.
  */
 export function compileSpec(sink, file, document, limits) {
   const add = (row) => sink.add({ file, ...row })
@@ -162,6 +167,7 @@ export function compileSpec(sink, file, document, limits) {
   const operations = new Map()
   let declared = 0
   let stopped = false
+  let truncated = false
 
   for (const path of Object.keys(document.paths)) {
     if (stopped) break
@@ -218,6 +224,7 @@ export function compileSpec(sink, file, document, limits) {
           suggestion: 'Raise --max-operations, or split the document.',
         })
         stopped = true
+        truncated = true
         break
       }
       declared += 1
@@ -236,7 +243,7 @@ export function compileSpec(sink, file, document, limits) {
     }
   }
 
-  return { operations, declared, version, title, unsupported }
+  return { operations, declared, version, title, unsupported, truncated }
 }
 
 function compileOperation(add, pointer, path, method, value) {
@@ -271,6 +278,7 @@ function compileOperation(add, pointer, path, method, value) {
     method,
     pointer,
     deprecated: false,
+    deprecatedUnknown: false,
     sunset: null,
     sunsetUnknown: false,
     deprecatedSince: null,
@@ -288,6 +296,7 @@ function compileOperation(add, pointer, path, method, value) {
         suggestion: 'Write the flag as a JSON boolean.',
       })
       operation.unknownEvidence = true
+      operation.deprecatedUnknown = true
     } else {
       operation.deprecated = value.deprecated
     }
@@ -324,7 +333,9 @@ function compileOperation(add, pointer, path, method, value) {
   if (replacement === 'broken') operation.replacementBroken = true
   else operation.replacement = replacement
 
-  if (!operation.deprecated && operation.sunset !== null) {
+  // Not reported when the `deprecated` flag itself could not be read: "is not
+  // marked deprecated" would be a claim about a value this reader refused.
+  if (!operation.deprecated && !operation.deprecatedUnknown && operation.sunset !== null) {
     add({
       ruleId: 'sunset-without-deprecation',
       pointer: `${pointer}/${escapePointerToken(SUNSET_KEY)}`,
