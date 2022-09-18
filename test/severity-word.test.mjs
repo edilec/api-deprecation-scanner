@@ -216,7 +216,7 @@ test('identifier-invalid prints ERROR and counts as one error', async () => {
   assert.equal(stderr.includes(nel), false)
 })
 
-test('no-consumers-inventoried prints ERROR and counts as one error', async () => {
+test('no-consumers-inventoried prints ERROR, and the empty inventory makes the coverage unknown too', async () => {
   const { code, report, stderr } = await audit({
     'openapi.json': SPEC,
     'usage.json': inventory([]),
@@ -224,9 +224,10 @@ test('no-consumers-inventoried prints ERROR and counts as one error', async () =
 
   assert.equal(code, 2)
   assert.equal(report.status, 'incomplete')
-  assert.equal(report.summary.errors, 1)
+  assert.equal(report.summary.errors, 2)
   assert.equal(report.summary.warnings, 0)
   assert.equal(stderr.includes('ERROR   usage.json/consumers no-consumers-inventoried'), true)
+  assert.equal(stderr.includes('ERROR   openapi.json/paths/~1v1~1invoices/get deprecated-operation-usage-unknown'), true)
 })
 
 test('usage-operation-unknown prints ERROR, and the operation it hides is reported as unknown too', async () => {

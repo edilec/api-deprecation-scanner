@@ -134,8 +134,6 @@ export function compileSpec(sink, file, document, limits) {
     })
     return null
   }
-  const title = typeof document.info.title === 'string' ? excerpt(document.info.title, 80) : ''
-
   // Constructs that can hide a deprecated operation. Each is reported and each
   // makes the run incomplete; the walk still covers what it can reach, because
   // a partial answer plus an explicit gap is worth more than no answer.
@@ -243,7 +241,7 @@ export function compileSpec(sink, file, document, limits) {
     }
   }
 
-  return { operations, declared, version, title, unsupported, truncated }
+  return { operations, declared, version, unsupported, truncated }
 }
 
 function compileOperation(add, pointer, path, method, value) {

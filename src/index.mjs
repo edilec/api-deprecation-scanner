@@ -591,9 +591,11 @@ export async function scanDeprecations(options = {}) {
   if (spec !== null && inventory !== null) {
     const gaps = describeCoverageGaps(sink, inventoryName, inventory, spec, now, policy, limits)
     state.coverageGaps = gaps.length
-    // The `unevaluated` gap is already flagged above by the declared-versus-
-    // compiled check, so only the three coverage rules set the flag here.
-    if (gaps.some((gap) => gap !== 'unevaluated')) state.incomplete = true
+    // The `unevaluated` and `empty` gaps are already flagged elsewhere -- by
+    // the declared-versus-compiled check and by `no-consumers-inventoried` --
+    // so only the three coverage rules set the flag here. A gap that is
+    // backstopped by another flag is a flag whose removal nothing can catch.
+    if (gaps.some((gap) => gap !== 'unevaluated' && gap !== 'empty')) state.incomplete = true
 
     const joined = joinUsage(sink, files, spec, inventory, {
       now,

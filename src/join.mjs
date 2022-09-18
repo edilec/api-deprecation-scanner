@@ -63,6 +63,13 @@ export function describeCoverageGaps(sink, file, inventory, spec, now, policy, l
   if (inventory.declaredConsumers !== inventory.consumers.length || inventory.declaredCalls !== inventory.compiledCalls) {
     gaps.push('unevaluated')
   }
+  if (listed === 0) {
+    // An inventory with nobody in it is the emptiest possible coverage, and
+    // reading its silence as "no consumer calls this" would be the vacuous
+    // pass wearing a different hat. It raises no finding of its own here --
+    // `no-consumers-inventoried` already says it, and owns the flag.
+    gaps.push('empty')
+  }
   return gaps
 }
 

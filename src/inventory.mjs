@@ -171,7 +171,9 @@ export function compileInventory(sink, file, document, limits) {
         break
       }
       declaredCalls += 1
-      const call = compileCall(add, callPointer, entry.id, entry.calls[callIndex])
+      const counters = { unknownKeys: 0 }
+      const call = compileCall(add, callPointer, entry.id, entry.calls[callIndex], counters)
+      unknownKeys += counters.unknownKeys
       if (call === null) continue
       if (calledOperations.has(call.operationId)) {
         add({
@@ -264,12 +266,15 @@ function compileCoverage(add, value) {
   }
 }
 
-function compileCall(add, pointer, consumerId, value) {
+function compileCall(add, pointer, consumerId, value, counters) {
   if (!isPlainObject(value)) {
     add({ ruleId: 'call-invalid', pointer, message: `A call entry must be an object; consumer "${excerpt(consumerId, 80)}" holds ${describeValue(value)} at this position.` })
     return null
   }
-  refuseUnknownKeys(add, pointer, value, CALL_KEYS, 'call')
+  // Counted, not merely reported: an unknown key here is the same typo risk as
+  // one at the top level, and a typo that only produces a finding without
+  // marking the run incomplete is a typo that can still turn a gap green.
+  counters.unknownKeys += refuseUnknownKeys(add, pointer, value, CALL_KEYS, 'call')
   if (!isIdentifier(value.operationId)) {
     add({
       ruleId: 'identifier-invalid',

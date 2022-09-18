@@ -166,13 +166,16 @@ Coverage is complete when all four of these hold:
 2. the inventory lists at least `coverage.consumersKnown` consumers;
 3. `coverage.windowEnd` is no further behind `--now` than the staleness
    allowance;
-4. every consumer and every call entry compiled -- nothing was refused, and no
-   limit cut the walk short.
+4. every consumer and every call entry compiled -- nothing was refused, no
+   limit cut the walk short, every call named an operation the document
+   declares, and the inventory is not empty.
 
 Each of the first three raises its own error and makes the run `incomplete`.
-The fourth is already flagged by the declared-versus-compiled check on the
-inventory, so it contributes to the coverage decision without a second flag of
-its own.
+The fourth is already flagged elsewhere -- by the declared-versus-compiled check
+on the inventory, by `usage-operation-unknown`, and by
+`no-consumers-inventoried` -- so it contributes to the coverage decision
+without a second flag of its own. A flag backstopped by another flag is a flag
+whose removal no test can catch.
 
 Complete coverage is what licenses `deprecated-operation-unused` and
 `expired-operation-unused`. Without it, the same silence is reported as
