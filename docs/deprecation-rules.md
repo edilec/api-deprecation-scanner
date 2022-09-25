@@ -311,3 +311,61 @@ brackets after the message so nothing is lost by the split.
 Every one of them is enforced and tested from both sides of the bound. An
 unknown limit name throws rather than being ignored, and every limit that cuts
 a walk short makes the run `incomplete` rather than truncating in silence.
+
+## How the two fragile guarantees were verified
+
+Both of these have been satisfied by tests that looked like coverage and were
+not, elsewhere in this catalog. So both were verified by breaking the code and
+counting what the suite noticed, rather than by asserting that the code says
+the right thing.
+
+### Ordering
+
+Nine call sites in this package order something that reaches output. Each one
+was swapped, one at a time, to a comparator built from `Intl.Collator('en')` --
+constructed without the literal text `Intl.`, so that the source-scan boundary
+check in `test/guarantees.test.mjs` could not be what caught it -- and the whole
+suite was run against the mutant.
+
+| Site | Where | Failing tests |
+| --- | --- | ---: |
+| the unknown-key walk | `validateBounded` | 2 |
+| the printed list of known names | `validateBounded` | **0** |
+| the unknown-option walk | `scanDeprecations` | 1 |
+| `compareFindings` 1: `location.file` | `compareFindings` | 2 |
+| `compareFindings` 2: `location.pointer` | `compareFindings` | 2 |
+| `compareFindings` 3: `ruleId` | `compareFindings` | **0** |
+| `compareFindings` 4: `message` | `compareFindings` | 2 |
+| `compareFindings` 5: `evidence` | `compareFindings` | 3 |
+| the consumer list in a coverage gap | `describeCoverageGaps` | 2 |
+
+Seven of the nine are pinned by a failing test. The two that are not are the
+two whose alphabets this package declares rather than reads from a file, and
+they are **equivalent mutants** rather than gaps: over the 54 rule ids (2862
+ordered pairs) and the 9 limit names (72 ordered pairs) an English collator
+agrees with code-unit order on every pair, and with the collator substituted at
+either site the tool's output over all three example roots plus the three
+rejection messages is **byte-identical**. `test/ordering.test.mjs` enumerates
+those pairs, so the day a rule id or a limit name is added in an alphabet where
+the two comparators could differ, that test fails and says the comparison has
+become observable and needs a fixture of its own.
+
+### Severity
+
+Each of the 44 error rules was flipped to `warning` in **both** places a
+declaration lives -- the frozen `RULE_SEVERITY` table and the catalog above --
+and the suite was run against the coordinated edit.
+
+**44 of 44 were caught. None survived.** The same exercise in the other
+direction, promoting each of the 10 non-error rules to `error`, caught 10 of 10.
+
+Seven of the error rules are caught by the process exit code alone, because
+their severity is the only thing standing between the run and exit 0:
+`expired-operation-in-use`, `replacement-unknown-operation`,
+`replacement-also-deprecated`, `replacement-invalid`, `sunset-before-deprecation`,
+`call-observed-after-clock` and `call-outside-coverage-window`. The other
+thirty-seven also mark the run `incomplete`, so they exit 2 whichever severity
+they carry; those are caught by `test/severity-word.test.mjs`, which asserts the
+literal error count, the literal warning count and the literal severity word
+printed in the human report, inline at each assertion, in a file that imports no
+table, reads no catalog and shares no expectation with anything else.

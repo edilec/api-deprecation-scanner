@@ -119,4 +119,16 @@ All notable changes to this project are documented in this file.
   not claim otherwise. `README.md` and `docs/deprecation-rules.md` both state
   what a `pass` does and does not mean.
 
+### Verified by breaking it
+
+- Each of the nine ordering call sites was swapped to a collator, one at a
+  time, and the suite run against the mutant: seven failed a test. The two that
+  did not are equivalent mutants over closed alphabets -- output byte-identical,
+  every ordered pair enumerated -- and not gaps.
+- Each of the 44 error rules was demoted to `warning` in both the frozen table
+  and the documented catalog at once: 44 of 44 were caught. Promoting each of
+  the 10 non-error rules to `error` caught 10 of 10.
+- The counts and the method are recorded in `docs/deprecation-rules.md` under
+  "How the two fragile guarantees were verified".
+
 No release has been published.
