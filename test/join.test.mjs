@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
-  apiReport, call, consumer, current, findingsFor, fixture, operation, operations, raisedRules,
+  apiReport, call, consumer, current, findingsFor, fixture, inventoryOf, operation, operations,
+  raisedRules, specOf,
 } from './support.mjs'
 
 /**
@@ -155,6 +156,21 @@ test('a document where nothing is deprecated says so, rather than saying nothing
     'None of the 1 operation(s) read from this document is marked deprecated, so there was nothing to join the inventory to.',
   )
   assert.equal(report.status, 'pass')
+})
+
+test('a document whose every operation was refused claims nothing about what is deprecated', async () => {
+  // The same rule, from the other end: with nothing examined there is no claim
+  // to make. "None of the 0 operation(s) read from this document is marked
+  // deprecated" reads as a green answer about a document this run could not
+  // read, which is the opposite of what happened.
+  const report = await apiReport({
+    'openapi.json': specOf([{ path: '/v1/invoices', method: 'get' }]),
+    'usage.json': inventoryOf([consumer({ calls: [] })]),
+  })
+
+  assert.equal(report.summary.checked, 0)
+  assert.deepEqual(raisedRules(report), ['operation-invalid'])
+  assert.equal(report.status, 'incomplete')
 })
 
 test('the human report prints the evidence beside the message, so the consumer is never lost', async () => {

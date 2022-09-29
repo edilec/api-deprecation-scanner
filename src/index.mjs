@@ -623,12 +623,22 @@ export async function scanDeprecations(options = {}) {
      * one -- the operations were read and none of them announced a removal.
      * It is recorded as `info` so that a green report says why it is green,
      * rather than leaving the reader to guess whether anything was examined.
+     *
+     * It is a claim about *every* operation, so it is only made when the walk
+     * that would have found a deprecated one actually finished. The join's
+     * loops break on an exhausted budget, and a run that stopped halfway knows
+     * nothing about the operations it never reached: saying "none of them is
+     * deprecated" there would be a positive verdict for work that never
+     * happened, written into the JSON a consumer parses. `examined` is what
+     * the walk really looked at, so it is both the guard and the number the
+     * message states -- and when nothing was examined, because every operation
+     * in the document was refused, there is no claim to make either.
      */
-    if (joined.deprecated === 0 && spec.operations.size > 0) {
+    if (!joined.timedOut && joined.deprecated === 0 && joined.examined > 0) {
       sink.add({
         file: specName,
         ruleId: 'no-deprecated-operations',
-        message: `None of the ${spec.operations.size} operation(s) read from this document is marked deprecated, so there was nothing to join the inventory to.`,
+        message: `None of the ${joined.examined} operation(s) read from this document is marked deprecated, so there was nothing to join the inventory to.`,
       })
     }
   }

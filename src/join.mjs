@@ -145,6 +145,7 @@ export function joinUsage(sink, files, spec, inventory, context) {
   let expiredLinks = 0
   let expired = 0
   let deprecated = 0
+  let examined = 0
 
   // A join that ran out of budget in the first pass has an incomplete picture
   // of who calls what, so the second pass is skipped entirely rather than run
@@ -155,6 +156,11 @@ export function joinUsage(sink, files, spec, inventory, context) {
       timedOut = true
       break
     }
+    // Counted before anything else this loop does, and returned: `deprecated`
+    // alone cannot tell "none of them is deprecated" from "the walk stopped
+    // before it got to one", and the caller makes a claim that depends on the
+    // difference.
+    examined += 1
     if (!operation.deprecated) continue
     deprecated += 1
 
@@ -187,7 +193,7 @@ export function joinUsage(sink, files, spec, inventory, context) {
     }
   }
 
-  return { links, expiredLinks, expired, deprecated, unknownOperations, timedOut }
+  return { links, expiredLinks, expired, deprecated, examined, unknownOperations, timedOut }
 }
 
 /** Which of the five link rules this pair falls under. */

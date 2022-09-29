@@ -155,6 +155,30 @@ test('maxMilliseconds: a generous budget completes, a one-millisecond budget doe
   assert.equal(findingsFor(overBound, 'time-limit-exceeded').length, 1)
 })
 
+test('a join that runs out of budget leaves no verdict behind', async () => {
+  // The budget is checked inside the join's loops, so it stops the walk in the
+  // middle. Everything that walk was responsible for concluding is unfinished
+  // at that point, and `no-deprecated-operations` is the conclusion it owns:
+  // it is a claim about every operation in the document, and this run examined
+  // none of them. The document below does hold a deprecated operation, so the
+  // claim is not merely unearned, it is false -- and it would be written into
+  // the JSON report a consumer parses rather than only printed.
+  const many = []
+  for (let index = 0; index < 300; index += 1) {
+    many.push(consumer({ id: `consumer-${index}`, calls: [call(), call({ operationId: 'listInvoices' })] }))
+  }
+  const report = await apiReport(fixture(operations(), many), { limits: { maxMilliseconds: 1 } })
+
+  assert.equal(report.status, 'incomplete')
+  assert.equal(findingsFor(report, 'time-limit-exceeded').length, 1)
+  assert.equal(report.summary.deprecated, 0, 'the walk that counts them never ran')
+  assert.equal(
+    findingsFor(report, 'no-deprecated-operations').length,
+    0,
+    'one of these operations is deprecated; the run simply never looked at it',
+  )
+})
+
 /* The limit configuration itself ------------------------------------------- */
 
 test('an unknown limit name throws rather than being ignored', () => {
