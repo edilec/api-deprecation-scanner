@@ -3,7 +3,7 @@ import test from 'node:test'
 
 import { METHODS, SUPPORTED_OPENAPI, UNRECOGNISED_EXTENSIONS } from '../src/index.mjs'
 import {
-  apiReport, consumer, current, findingsFor, fixture, inventoryOf, operation, operations,
+  apiReport, call, consumer, current, findingsFor, fixture, inventoryOf, operation, operations,
   raisedRules, specOf,
 } from './support.mjs'
 
@@ -166,6 +166,49 @@ test('a deprecated operation with no announcement at all raises both absences', 
 
   assert.deepEqual(raisedRules(report), ['deprecated-operation-in-use', 'replacement-undeclared', 'sunset-undeclared'])
   assert.equal(report.status, 'pass', 'neither absence is an error; both are stated')
+})
+
+test('a path template at the identifier bound is read, and one character past it is refused', async () => {
+  // Both sides, because the bound decides whether an operation is scanned at
+  // all. It used to be written twice -- once inside `isIdentifier` and once as
+  // a second clause against a second constant of the same value -- and with
+  // only the refusing side asserted, widening either copy changed nothing any
+  // test could see.
+  const atBound = `/${'a'.repeat(199)}`
+  assert.equal(atBound.length, 200)
+
+  const read = await apiReport(fixture([operation({ path: atBound }), current()], [consumer()]))
+  assert.equal(read.summary.checked, 2)
+  assert.deepEqual(raisedRules(read), ['deprecated-operation-in-use'])
+
+  const refused = await apiReport(fixture(
+    [operation({ path: `${atBound}a` }), current()],
+    [consumer({ calls: [call({ operationId: 'listInvoices' })] })],
+  ))
+  assert.equal(refused.summary.checked, 1, 'the other operation was still read')
+  assert.equal(refused.status, 'incomplete')
+  const invalid = findingsFor(refused, 'identifier-invalid')
+  assert.equal(invalid.length, 1)
+  assert.match(invalid[0].message, /^A path template must be a printable identifier of 1-200 characters/)
+})
+
+test('a removal date equal to its announcement gives no notice, and does not precede it', async () => {
+  // The rule is that a removal date must not *precede* its announcement, and
+  // the same instant does not precede itself. The boundary decides an
+  // error-severity rule and therefore the process exit code, so it is pinned
+  // from both sides: one millisecond earlier must fire, and the instant itself
+  // must not.
+  const announced = '2026-01-15T00:00:00Z'
+  const rulesFor = async (sunset) => raisedRules(await apiReport(fixture(
+    [operation({ 'x-deprecated-since': announced, 'x-sunset': sunset }), current()],
+    [consumer()],
+  )))
+
+  assert.deepEqual(await rulesFor(announced), ['expired-operation-in-use'])
+  assert.deepEqual(
+    await rulesFor('2026-01-14T23:59:59.999Z'),
+    ['expired-operation-in-use', 'sunset-before-deprecation'],
+  )
 })
 
 test('a removal date announced without the deprecated flag is reported', async () => {

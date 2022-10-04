@@ -22,7 +22,8 @@
  */
 
 import {
-  describeValue, escapePointerToken, excerpt, isIdentifier, isPlainObject, parseInstant,
+  MAX_IDENTIFIER_LENGTH, describeValue, escapePointerToken, excerpt, isIdentifier, isPlainObject,
+  parseInstant,
 } from './text.mjs'
 
 /** The document versions this reader understands. */
@@ -65,7 +66,6 @@ export const UNRECOGNISED_EXTENSIONS = Object.freeze([
 /** Keys allowed inside an `x-replacement` object. */
 export const REPLACEMENT_KEYS = Object.freeze(['docs', 'operationId', 'since'])
 
-const MAX_PATH_LENGTH = 200
 const MAX_DOCS_LENGTH = 300
 
 /**
@@ -170,12 +170,18 @@ export function compileSpec(sink, file, document, limits) {
   for (const path of Object.keys(document.paths)) {
     if (stopped) break
     const pathPointer = `/paths/${escapePointerToken(path)}`
-    if (!isIdentifier(path) || path.length > MAX_PATH_LENGTH) {
+    // The bound on a path template is the identifier bound itself. It was
+    // written as a second clause against a second constant of the same value,
+    // which no input could ever reach: `isIdentifier` has already refused
+    // anything longer, so the clause could not decide a single case and
+    // widening it by one changed nothing any test could see. One constant, one
+    // comparison, and the number in the message comes from the same place.
+    if (!isIdentifier(path)) {
       declared += 1
       add({
         ruleId: 'identifier-invalid',
         pointer: pathPointer,
-        message: `A path template must be a printable identifier of 1-${MAX_PATH_LENGTH} characters with no control, separator or bidi character; this one is not, so its operations were not read.`,
+        message: `A path template must be a printable identifier of 1-${MAX_IDENTIFIER_LENGTH} characters with no control, separator or bidi character; this one is not, so its operations were not read.`,
         suggestion: 'Remove the control or bidi character from the path template.',
       })
       continue
