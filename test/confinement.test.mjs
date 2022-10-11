@@ -76,6 +76,35 @@ test('a symbolic link to a parent directory outside the root is refused, even fo
   })
 })
 
+test('a symbolic-link loop behind an escape is refused as an escape, not as a read error', async () => {
+  // `resolveInput` carves ELOOP out beside ENOENT, and the carve-out is the
+  // whole reason the parent is looked at: both codes mean the target itself
+  // could not be resolved, and neither says anything about *where* the target
+  // is. Without the carve-out a loop planted behind a link out of the tree
+  // would be reported as a file that happened not to read, hiding the escape.
+  await outsideRoot(async (outside) => {
+    await symlink('loop', join(outside, 'loop'))
+    const report = await withRoot({ 'openapi.json': SPEC }, async (root) => {
+      await symlink(outside, join(root, 'escape'))
+      return scanDeprecations({ root, now: NOW, inventory: 'escape/loop' })
+    })
+
+    assert.deepEqual(raisedRules(report), ['path-escapes-root'])
+    assert.equal(report.status, 'incomplete')
+  })
+})
+
+test('a symbolic-link loop that stays inside the root is an unreadable input, and names the error', async () => {
+  const report = await withRoot({ 'openapi.json': SPEC }, async (root) => {
+    await mkdir(join(root, 'nested'))
+    await symlink('loop', join(root, 'nested', 'loop'))
+    return scanDeprecations({ root, now: NOW, inventory: 'nested/loop' })
+  })
+
+  assert.deepEqual(raisedRules(report), ['input-unreadable'])
+  assert.match(findingsFor(report, 'input-unreadable')[0].message, /could not be resolved inside --root: ELOOP\./)
+})
+
 test('a symbolic link inside the root is followed, because it does not leave the tree', async () => {
   const report = await withRoot({ 'openapi.json': SPEC, 'real-usage.json': USAGE }, async (root) => {
     await symlink(join(root, 'real-usage.json'), join(root, 'usage.json'))
