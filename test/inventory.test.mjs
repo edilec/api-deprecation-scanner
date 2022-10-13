@@ -150,7 +150,7 @@ test('the source is optional, and its absence is visible in the evidence rather 
 
   assert.equal(
     findingsFor(report, 'deprecated-operation-unused')[0].evidence,
-    'coverage 2026-03-01T00:00:00Z to 2026-06-01T00:00:00Z, all 1 known consumer(s)',
+    'coverage 2026-03-01T00:00:00Z to 2026-06-01T00:00:00Z, all 1 inventoried consumer(s), 1 known to the source',
   )
 })
 

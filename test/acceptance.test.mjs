@@ -133,7 +133,7 @@ test('an operation nobody is seen calling is unused under complete coverage and 
   const unused = findingsFor(covered, 'deprecated-operation-unused')
   assert.equal(unused.length, 1)
   assert.equal(unused[0].severity, 'info')
-  assert.equal(unused[0].evidence, 'coverage 2026-03-01T00:00:00Z to 2026-06-01T00:00:00Z from gateway-access-log, all 1 known consumer(s)')
+  assert.equal(unused[0].evidence, 'coverage 2026-03-01T00:00:00Z to 2026-06-01T00:00:00Z from gateway-access-log, all 1 inventoried consumer(s), 1 known to the source')
   assert.equal(unused[0].suggestion, 'This covers the declared consumers and window only; usage outside either remains unknown.')
 
   const short = await apiReport(fixture(quiet, users, { consumersKnown: 40 }))

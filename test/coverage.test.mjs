@@ -25,7 +25,7 @@ test('complete coverage licenses the claim, and states its bounds in the evidenc
   assert.equal(report.summary.coverageGaps, 0)
   const unused = findingsFor(report, 'deprecated-operation-unused')[0]
   assert.equal(unused.severity, 'info')
-  assert.equal(unused.evidence, 'coverage 2026-03-01T00:00:00Z to 2026-06-01T00:00:00Z from gateway-access-log, all 1 known consumer(s)')
+  assert.equal(unused.evidence, 'coverage 2026-03-01T00:00:00Z to 2026-06-01T00:00:00Z from gateway-access-log, all 1 inventoried consumer(s), 1 known to the source')
   assert.equal(unused.suggestion, 'This covers the declared consumers and window only; usage outside either remains unknown.')
 })
 
@@ -125,4 +125,12 @@ test('an inventory listing more consumers than the source claims to know is not 
 
   assert.equal(report.summary.coverageGaps, 0)
   assert.equal(report.status, 'pass')
+  // And the evidence says how many consumers were really examined rather than
+  // repeating the source's own number back. One consumer was read here, so
+  // "all 0 known consumer(s)" would have understated evidence that was
+  // obtained -- on the very field the one-sided comparison lets disagree.
+  assert.equal(
+    findingsFor(report, 'deprecated-operation-unused')[0].evidence,
+    'coverage 2026-03-01T00:00:00Z to 2026-06-01T00:00:00Z from gateway-access-log, all 1 inventoried consumer(s), 0 known to the source',
+  )
 })

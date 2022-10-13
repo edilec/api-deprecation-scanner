@@ -300,7 +300,13 @@ function reportNoUsage(sink, files, operation, inventory, isExpired, coverageCom
     message: isExpired
       ? `Operation "${excerpt(operation.operationId, 80)}" passed its removal date of ${operation.sunset.canonical} and no covered consumer called it in the declared window, so it can be removed from the document.`
       : `Operation "${excerpt(operation.operationId, 80)}" is deprecated and no covered consumer called it in the declared window.`,
-    evidence: `coverage ${window}${from}, all ${coverage.consumersKnown} known consumer(s)`,
+    // Both numbers, because the comparison that licenses this claim is
+    // one-sided on purpose: an inventory may list more consumers than its
+    // source claims to know about, and that is accepted as complete coverage.
+    // Stating only `consumersKnown` then read as "all 0 known consumer(s)" for
+    // an inventory whose one consumer really had been read and examined --
+    // evidence that was obtained, described as if it were not.
+    evidence: `coverage ${window}${from}, all ${inventory.consumers.length} inventoried consumer(s), ${coverage.consumersKnown} known to the source`,
     suggestion: 'This covers the declared consumers and window only; usage outside either remains unknown.',
   })
 }
