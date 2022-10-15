@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import test from 'node:test'
 
 import {
@@ -7,7 +9,7 @@ import {
 } from '../src/index.mjs'
 import {
   NOW, apiReport, call, consumer, current, findingsFor, fixture, inventoryOf, operation,
-  operations, raisedRules, specOf,
+  operations, projectDirectory, raisedRules, specOf,
 } from './support.mjs'
 
 /**
@@ -219,6 +221,30 @@ test('the defaults are frozen, and an override leaves them alone', () => {
   assert.equal(Object.isFrozen(DEFAULT_POLICY), true)
   assert.equal(Object.isFrozen(validateLimits({ maxFindings: 3 })), true)
   assert.equal(DEFAULT_LIMITS.maxFindings, 1000)
+})
+
+test('the documented limits table names every limit, with the same default and the same cap', async () => {
+  // The rule catalog is asserted against RULE_SEVERITY in both directions and
+  // the limits table was not, so the nine numbers a reader configures against
+  // could drift away from the nine the code enforces with nothing to notice.
+  // Both directions here too: a limit documented and not declared is as wrong
+  // as one declared and not documented.
+  const text = await readFile(join(projectDirectory, 'docs/deprecation-rules.md'), 'utf8')
+  const documented = new Map()
+  for (const match of text.matchAll(/^\| `(max[A-Za-z]+)` \| (\d+) \| (\d+) \|/gm)) {
+    assert.equal(documented.has(match[1]), false, `${match[1]} is documented twice`)
+    documented.set(match[1], { fallback: Number(match[2]), cap: Number(match[3]) })
+  }
+  assert.equal(documented.size, 9, 'the table was actually parsed')
+
+  for (const [key, value] of Object.entries(DEFAULT_LIMITS)) {
+    assert.deepEqual(documented.get(key), { fallback: value, cap: HARD_LIMITS[key] }, `${key} is documented as it is enforced`)
+  }
+  for (const [key, row] of documented) {
+    assert.equal(DEFAULT_LIMITS[key], row.fallback, `${key} is documented and not declared`)
+    assert.equal(HARD_LIMITS[key], row.cap, `${key}'s cap is documented and not declared`)
+  }
+  assert.equal(documented.size, Object.keys(DEFAULT_LIMITS).length)
 })
 
 test('an unknown option throws rather than being ignored', async () => {

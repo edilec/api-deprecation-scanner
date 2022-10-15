@@ -279,7 +279,14 @@ then `message`, then `evidence` -- every comparison by UTF-16 code unit. No
 locale-aware comparison appears anywhere in this package, because collation
 depends on ICU data that differs between Node builds and treats punctuation as
 ignorable. `test/ordering.test.mjs` names all nine call sites that order
-anything reaching output and pins each one by the order it emits.
+anything reaching output. It pins seven of them by the order the tool emits,
+for inputs the two comparators disagree about. The other two order values this
+package declares rather than reads from a file, over alphabets on which an
+English collator agrees with code unit for every ordered pair: no fixture can
+tell the comparators apart there, so those two are proved **equivalent** by
+enumerating the pairs instead, and the enumeration fails the day a value is
+added in an alphabet where they could differ. See
+[How the two fragile guarantees were verified](#how-the-two-fragile-guarantees-were-verified).
 
 Two consumers of one operation produce two findings that agree on file,
 pointer, rule id and message. That is deliberate: the consumer lives in the
