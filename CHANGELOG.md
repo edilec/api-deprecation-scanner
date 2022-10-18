@@ -85,6 +85,22 @@ All notable changes to this project are documented in this file.
 - a consumer contact containing `@` is refused unread rather than copied into a
   report that gets piped, logged and pasted. A contact names a team or a
   channel; the people are in your own directory.
+- `no-deprecated-operations` is no longer claimed for a walk that stopped
+  early. The join's loops break on an exhausted `--max-milliseconds` budget,
+  and a run whose first pass broke skipped the second pass entirely — leaving
+  `deprecated` at zero, which the caller read as an answer and reported as
+  "None of the 2 operation(s) read from this document is marked deprecated"
+  for a document in which one of them was. The run was `incomplete` and exited
+  2, but the false claim was in the JSON on stdout. The claim is now made only
+  when the walk finished and examined something;
+- the evidence on `deprecated-operation-unused` says how many consumers were
+  actually examined beside how many the source claims to know about. The
+  coverage comparison is one-sided on purpose, so the two numbers may
+  disagree, and reporting only the source's number read as "all 0 known
+  consumer(s)" for an inventory whose one consumer really had been examined;
+- a path template is bounded by the identifier bound itself, once. The second
+  clause against a second constant of the same value could not decide a case,
+  so the number the message named was never the number enforced.
 
 ### Guaranteed
 
@@ -110,11 +126,12 @@ All notable changes to this project are documented in this file.
   anything else, and all ten non-error rules by runs that must exit 0.
 - No wall clock, locale-aware comparison, random source, network access or
   filesystem enumeration order affects the output. All nine call sites that
-  order something reaching output are named and pinned by the order they emit,
-  using inputs an English collator orders the other way round; the two sites
-  over closed alphabets are proved equivalent by enumerating every ordered pair,
-  and that enumeration fails the moment a value is added in an alphabet where
-  the two comparators could differ.
+  order something reaching output are named. Seven are pinned by the order they
+  emit, using inputs an English collator orders the other way round; the other
+  two order closed alphabets this package declares, where no fixture can tell
+  the comparators apart, and are proved equivalent by enumerating every ordered
+  pair — an enumeration that fails the moment a value is added in an alphabet
+  where the two could differ.
 - An inventory cannot show that nothing calls an operation, and this tool does
   not claim otherwise. `README.md` and `docs/deprecation-rules.md` both state
   what a `pass` does and does not mean.
