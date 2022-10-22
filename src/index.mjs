@@ -610,6 +610,11 @@ export async function scanDeprecations(options = {}) {
     if (joined.unknownOperations > 0) state.incomplete = true
     if (joined.timedOut) {
       state.incomplete = true
+      // The consumers and operations the budget stopped the join from reaching
+      // are entries nobody evaluated, and the summary says so. Leaving them out
+      // let the report print "0 entr(ies) not evaluated" on the same run that
+      // reports `time-limit-exceeded`.
+      state.unevaluated += joined.unreached
       sink.add({
         file: inventoryName,
         ruleId: 'time-limit-exceeded',

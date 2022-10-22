@@ -179,6 +179,11 @@ test('a join that runs out of budget leaves no verdict behind', async () => {
     0,
     'one of these operations is deprecated; the run simply never looked at it',
   )
+  // And the count of what nobody evaluated says so too: a summary reading
+  // "0 entr(ies) not evaluated" beside `time-limit-exceeded` is the same
+  // false reassurance in a second place, and the CLI prints that line.
+  assert.equal(report.summary.unevaluated > 0, true, 'the entries the budget never reached are counted')
+  assert.equal(report.summary.unevaluated <= many.length + 2, true, 'and no more than there were')
 })
 
 /* The limit configuration itself ------------------------------------------- */

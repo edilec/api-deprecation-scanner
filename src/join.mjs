@@ -87,12 +87,19 @@ export function joinUsage(sink, files, spec, inventory, context) {
   const usage = new Map()
   let unknownOperations = 0
   let timedOut = false
+  // What the budget stopped this function from looking at. The summary reports
+  // it beside the entries that were refused, because "0 entries not evaluated"
+  // printed next to `time-limit-exceeded` says nothing was missed by a run that
+  // missed most of its subject.
+  let unreached = 0
 
-  for (const consumer of inventory.consumers) {
+  for (let index = 0; index < inventory.consumers.length; index += 1) {
     if (deadline.exceeded()) {
       timedOut = true
+      unreached += inventory.consumers.length - index
       break
     }
+    const consumer = inventory.consumers[index]
     for (const call of consumer.calls) {
       const operation = spec.operations.get(call.operationId)
       if (operation === undefined) {
@@ -154,6 +161,7 @@ export function joinUsage(sink, files, spec, inventory, context) {
   for (const operation of timedOut ? [] : spec.operations.values()) {
     if (deadline.exceeded()) {
       timedOut = true
+      unreached += spec.operations.size - examined
       break
     }
     // Counted before anything else this loop does, and returned: `deprecated`
@@ -193,7 +201,7 @@ export function joinUsage(sink, files, spec, inventory, context) {
     }
   }
 
-  return { links, expiredLinks, expired, deprecated, examined, unknownOperations, timedOut }
+  return { links, expiredLinks, expired, deprecated, examined, unreached, unknownOperations, timedOut }
 }
 
 /** Which of the five link rules this pair falls under. */
