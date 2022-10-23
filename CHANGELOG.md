@@ -100,7 +100,15 @@ All notable changes to this project are documented in this file.
   consumer(s)" for an inventory whose one consumer really had been examined;
 - a path template is bounded by the identifier bound itself, once. The second
   clause against a second constant of the same value could not decide a case,
-  so the number the message named was never the number enforced.
+  so the number the message named was never the number enforced;
+- an operation carrying a near-miss extension is no longer reported as naming
+  no replacement. Three of the twelve — `x-replaced-by`, `x-replacedBy` and
+  `x-successor` — name a migration target rather than a date, so
+  `replacement-undeclared` stood in the same report as the
+  `sunset-extension-unrecognised` finding saying the replacement may be in the
+  very key this reader did not interpret. The removal date was already guarded
+  this way; the replacement now is too, on a flag of its own so that an
+  unreadable `x-sunset` does not suppress an absence that really was decided.
 
 ### Guaranteed
 

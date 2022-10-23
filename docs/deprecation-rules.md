@@ -89,7 +89,12 @@ The near-miss list is fixed and is checked on every operation:
 `x-successor`, `x-sunset-date`, `x-sunsetDate`. There is no registry for any of
 these and every gateway spells the idea differently, so a spelling this reader
 does not implement is reported as possibly holding the removal date rather than
-ignored. An operation carrying one is never reported as having no removal date.
+ignored. Three of the twelve -- `x-replaced-by`, `x-replacedBy` and
+`x-successor` -- name a migration target rather than a date, and this reader
+cannot tell which of the twelve it is looking at without interpreting it. So an
+operation carrying any of them is reported neither as having no removal date nor
+as naming no replacement: both absences would contradict the
+`sunset-extension-unrecognised` finding standing beside them.
 
 ## The usage inventory
 

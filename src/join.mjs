@@ -257,7 +257,13 @@ function reportOperationMetadata(sink, file, operation) {
       suggestion: 'Add "x-sunset" with the date the operation stops answering.',
     })
   }
-  if (operation.replacement === null && !operation.replacementBroken) {
+  // Guarded the same way the absent removal date is one branch above: an
+  // operation carrying a near-miss extension may be naming its replacement in
+  // the very key this reader did not interpret, and "names no replacement"
+  // would then contradict the `sunset-extension-unrecognised` finding standing
+  // beside it in the same report. An unreadable `x-sunset` is not a reason to
+  // suppress this one, which is why the two flags are separate.
+  if (operation.replacement === null && !operation.replacementBroken && !operation.unreadExtension) {
     sink.add({
       file,
       ruleId: 'replacement-undeclared',

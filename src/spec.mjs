@@ -288,6 +288,7 @@ function compileOperation(add, pointer, path, method, value) {
     deprecatedSince: null,
     replacement: null,
     replacementBroken: false,
+    unreadExtension: false,
     unknownEvidence: false,
   }
 
@@ -309,6 +310,13 @@ function compileOperation(add, pointer, path, method, value) {
   for (const key of UNRECOGNISED_EXTENSIONS) {
     if (!Object.hasOwn(value, key)) continue
     operation.unknownEvidence = true
+    // Three of the twelve near-misses -- `x-replaced-by`, `x-replacedBy` and
+    // `x-successor` -- name a migration target rather than a date, and this
+    // reader cannot tell which of the twelve it is looking at without
+    // interpreting it. Recorded separately from `unknownEvidence` because an
+    // unreadable `x-sunset` sets that flag too and says nothing at all about
+    // whether a replacement was declared.
+    operation.unreadExtension = true
     add({
       ruleId: 'sunset-extension-unrecognised',
       pointer: `${pointer}/${escapePointerToken(key)}`,

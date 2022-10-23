@@ -81,6 +81,35 @@ test('an operation carrying an unread extension is never reported as having no r
   assert.equal(raisedRules(report).includes('sunset-extension-unrecognised'), true)
 })
 
+test('an operation carrying an unread extension is never reported as naming no replacement either', async () => {
+  // Three of the twelve near-misses name a migration target rather than a
+  // date, and this reader cannot tell which of the twelve it is looking at.
+  // "Names no replacement" printed beside "it may hold the replacement, so
+  // neither was decided from it" is one report contradicting itself.
+  const report = await apiReport(fixture(
+    [operation({ 'x-replacement': undefined, 'x-replaced-by': 'listInvoices' }), current()],
+    [consumer()],
+  ))
+
+  assert.deepEqual(raisedRules(report), ['deprecated-operation-in-use', 'sunset-extension-unrecognised'])
+})
+
+test('an unreadable removal date does not suppress the absent replacement, which really is absent', async () => {
+  // The other side of that guard. An `x-sunset` this reader could not parse
+  // says nothing whatever about whether a replacement was declared, so the two
+  // are tracked apart: suppressing this finding there would be a report gone
+  // quiet about something it did decide.
+  const report = await apiReport(fixture(
+    [operation({ 'x-sunset': 'the end of June', 'x-replacement': undefined }), current()],
+    [consumer()],
+  ))
+
+  assert.deepEqual(
+    raisedRules(report),
+    ['deprecated-operation-in-use', 'replacement-undeclared', 'sunset-invalid'],
+  )
+})
+
 test('the three supported extensions are read in both of their accepted forms', async () => {
   const report = await apiReport(fixture([
     operation({ 'x-sunset': '2026-12-01', 'x-deprecated-since': '2026-01-15T09:00:00Z', 'x-replacement': { operationId: 'listInvoices', since: '2.2.0', docs: 'https://docs.example.test/a' } }),
