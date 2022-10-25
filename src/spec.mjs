@@ -409,6 +409,14 @@ function compileReplacement(add, pointer, operationId, value) {
  * process exit code is what pins it.
  */
 export function checkSpecCrossReferences(sink, file, spec) {
+  // Whether the map these lookups run against is the whole document. When a
+  // slot was refused or the operation limit cut the walk short, an id missing
+  // from the map may still be declared further down the file -- so the finding
+  // reports what was established rather than asserting an absence over bytes
+  // nobody read, which would contradict the `too-many-operations` or
+  // `operation-invalid` finding standing beside it in the same report.
+  const wholeDocument = spec.declared === spec.operations.size && !spec.truncated
+
   for (const operation of spec.operations.values()) {
     if (!operation.deprecated) continue
     if (operation.sunset !== null && operation.deprecatedSince !== null && operation.sunset.ms < operation.deprecatedSince.ms) {
@@ -427,8 +435,12 @@ export function checkSpecCrossReferences(sink, file, spec) {
         file,
         ruleId: 'replacement-unknown-operation',
         pointer: `${operation.pointer}/${escapePointerToken(REPLACEMENT_KEY)}`,
-        message: `Operation "${excerpt(operation.operationId, 80)}" names "${excerpt(operation.replacement.operationId, 80)}" as its replacement, but this document declares no such operation, so the migration guidance points nowhere.`,
-        suggestion: 'Name an operationId this document declares, or remove the replacement.',
+        message: wholeDocument
+          ? `Operation "${excerpt(operation.operationId, 80)}" names "${excerpt(operation.replacement.operationId, 80)}" as its replacement, but this document declares no such operation, so the migration guidance points nowhere.`
+          : `Operation "${excerpt(operation.operationId, 80)}" names "${excerpt(operation.replacement.operationId, 80)}" as its replacement, and no operation this run read declares that id -- but part of this document was not read, so whether the migration guidance points anywhere was not decided.`,
+        suggestion: wholeDocument
+          ? 'Name an operationId this document declares, or remove the replacement.'
+          : 'Read the whole document -- raise the limit, or correct the entries that were refused -- before treating this replacement as dangling.',
       })
       continue
     }

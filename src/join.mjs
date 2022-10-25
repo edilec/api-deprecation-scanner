@@ -92,6 +92,9 @@ export function joinUsage(sink, files, spec, inventory, context) {
   // printed next to `time-limit-exceeded` says nothing was missed by a run that
   // missed most of its subject.
   let unreached = 0
+  // Same reservation the cross-reference checks make: an id missing from a map
+  // built out of part of a document is not an id the document does not declare.
+  const wholeDocument = spec.declared === spec.operations.size && !spec.truncated
 
   for (let index = 0; index < inventory.consumers.length; index += 1) {
     if (deadline.exceeded()) {
@@ -108,8 +111,12 @@ export function joinUsage(sink, files, spec, inventory, context) {
           file: files.inventory,
           ruleId: 'usage-operation-unknown',
           pointer: `${call.pointer}/operationId`,
-          message: `Consumer "${excerpt(consumer.id, 80)}" calls operation "${excerpt(call.operationId, 80)}", which this document does not declare. Whether that call reaches a deprecated operation under another id was not decided.`,
-          suggestion: 'Align the inventory with the document, or scan the document version this usage was recorded against.',
+          message: wholeDocument
+            ? `Consumer "${excerpt(consumer.id, 80)}" calls operation "${excerpt(call.operationId, 80)}", which this document does not declare. Whether that call reaches a deprecated operation under another id was not decided.`
+            : `Consumer "${excerpt(consumer.id, 80)}" calls operation "${excerpt(call.operationId, 80)}", which no operation this run read declares -- and part of this document was not read. Whether that call reaches a deprecated operation was not decided.`,
+          suggestion: wholeDocument
+            ? 'Align the inventory with the document, or scan the document version this usage was recorded against.'
+            : 'Read the whole document -- raise the limit, or correct the entries that were refused -- before aligning the inventory to it.',
         })
         continue
       }

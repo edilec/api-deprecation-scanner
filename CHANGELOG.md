@@ -108,7 +108,13 @@ All notable changes to this project are documented in this file.
   `sunset-extension-unrecognised` finding saying the replacement may be in the
   very key this reader did not interpret. The removal date was already guarded
   this way; the replacement now is too, on a flag of its own so that an
-  unreadable `x-sunset` does not suppress an absence that really was decided.
+  unreadable `x-sunset` does not suppress an absence that really was decided;
+- `replacement-unknown-operation` and `usage-operation-unknown` no longer say
+  "this document does not declare it" when part of the document was not read.
+  Both look the id up in the map this run compiled, so a walk cut short by
+  `maxOperations` or a refused slot made them assert an absence on the same
+  report as the `too-many-operations` finding saying those operations were
+  never read. They now report what was established and name the gap.
 
 ### Guaranteed
 

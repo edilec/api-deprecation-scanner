@@ -240,6 +240,35 @@ test('a removal date equal to its announcement gives no notice, and does not pre
   )
 })
 
+test('an id missing from a partly read document is not an id the document does not declare', async () => {
+  // Two lookups run against the compiled operation map -- the replacement
+  // target, and the operationId a call names -- and a map built out of part of
+  // a document cannot settle an absence. Under a walk the operation limit cut
+  // short both findings claimed the document declares no such operation, on
+  // the same report as the `too-many-operations` finding saying the operations
+  // past that point were not read.
+  const files = fixture(operations(), [consumer({ calls: [call({ operationId: 'listInvoices' })] })])
+
+  const whole = await apiReport(files)
+  assert.deepEqual(raisedRules(whole), ['deprecated-operation-unused'], 'the whole document resolves both ids')
+
+  const partial = await apiReport(files, { limits: { maxOperations: 1 } })
+  assert.equal(partial.status, 'incomplete')
+  assert.equal(findingsFor(partial, 'too-many-operations').length, 1)
+  for (const ruleId of ['replacement-unknown-operation', 'usage-operation-unknown']) {
+    const message = findingsFor(partial, ruleId)[0].message
+    assert.equal(message.includes('part of this document was not read'), true, ruleId)
+    assert.equal(/document (declares no such operation|does not declare)/.test(message), false, ruleId)
+  }
+
+  // And a document that *was* read whole still says so plainly.
+  const dangling = await apiReport(fixture([operation({ 'x-replacement': 'listInvoicesV3' }), current()], [consumer()]))
+  assert.match(
+    findingsFor(dangling, 'replacement-unknown-operation')[0].message,
+    /but this document declares no such operation, so the migration guidance points nowhere\.$/,
+  )
+})
+
 test('a removal date announced without the deprecated flag is reported', async () => {
   const report = await apiReport(fixture([operation({ deprecated: false }), current()], [consumer()]))
 

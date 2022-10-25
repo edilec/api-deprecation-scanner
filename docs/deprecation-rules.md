@@ -65,6 +65,12 @@ implements exactly this much, and declares the rest.
 | `x-deprecated-since` | same format; only used to check it precedes `x-sunset` |
 | `x-replacement` | an `operationId` string, or `{ operationId, since, docs }` |
 
+Both of those lookups run against the operation map this run compiled. When
+part of the document was not read -- a slot refused, or the walk cut short by
+`maxOperations` -- an id missing from that map is not an id the document does
+not declare, and the finding says so instead of asserting an absence over bytes
+nobody read.
+
 Everything else in the document -- schemas, parameters, responses, security,
 servers, callbacks, tags -- is not read. Reading none of it is safe precisely
 because none of it can change whether an operation is deprecated, when it is
@@ -222,7 +228,7 @@ asserting the error count and the printed severity word with literal values.
 | `deprecated-flag-invalid` | error | `deprecated` is present and is not a JSON boolean |
 | `replacement-undeclared` | warning | a deprecated operation names no replacement |
 | `replacement-invalid` | error | `x-replacement` is malformed, so the migration target was not read |
-| `replacement-unknown-operation` | error | the replacement names an operationId this document does not declare |
+| `replacement-unknown-operation` | error | the replacement names an operationId no operation this run read declares |
 | `replacement-also-deprecated` | error | the replacement is itself deprecated |
 
 ### The document
@@ -252,7 +258,7 @@ asserting the error count and the printed severity word with literal values.
 | `call-duplicate` | error | one consumer declares the same operation more than once |
 | `call-observed-after-clock` | error | a call was observed after `--now` |
 | `call-outside-coverage-window` | error | a call was observed outside the window the inventory declares |
-| `usage-operation-unknown` | error | a call names an operationId the document does not declare |
+| `usage-operation-unknown` | error | a call names an operationId no operation this run read declares |
 | `no-consumers-inventoried` | error | the inventory lists no consumers at all |
 | `identifier-invalid` | error | a path template, operationId or consumer id is not a printable identifier |
 
