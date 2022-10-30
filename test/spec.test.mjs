@@ -261,11 +261,19 @@ test('an id missing from a partly read document is not an id the document does n
     assert.equal(/document (declares no such operation|does not declare)/.test(message), false, ruleId)
   }
 
-  // And a document that *was* read whole still says so plainly.
-  const dangling = await apiReport(fixture([operation({ 'x-replacement': 'listInvoicesV3' }), current()], [consumer()]))
+  // And a document that *was* read whole still says so plainly -- on both
+  // rules, because each keeps its own copy of the reservation.
+  const dangling = await apiReport(fixture(
+    [operation({ 'x-replacement': 'listInvoicesV3' }), current()],
+    [consumer({ calls: [call({ operationId: 'listInvoicesV9' })] })],
+  ))
   assert.match(
     findingsFor(dangling, 'replacement-unknown-operation')[0].message,
     /but this document declares no such operation, so the migration guidance points nowhere\.$/,
+  )
+  assert.match(
+    findingsFor(dangling, 'usage-operation-unknown')[0].message,
+    /calls operation "listInvoicesV9", which this document does not declare\. Whether/,
   )
 })
 
