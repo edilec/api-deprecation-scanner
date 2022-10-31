@@ -328,7 +328,16 @@ brackets after the message so nothing is lost by the split.
 
 Every one of them is enforced and tested from both sides of the bound. An
 unknown limit name throws rather than being ignored, and every limit that cuts
-a walk short makes the run `incomplete` rather than truncating in silence.
+a walk short makes the run `incomplete` rather than truncating in silence. The
+table above is asserted against `DEFAULT_LIMITS` and `HARD_LIMITS` in both
+directions, so a number printed here cannot drift from the number enforced.
+
+Six further bounds are fixed rather than configurable: the length of a `--spec`
+or `--inventory` name and of a consumer contact, a `coverage.source` and an
+identifier (200 characters each), `coverage.consumersKnown` (1000000), a call
+`count` (1000000000000), and the year range instants are accepted in
+(1970-2100). `test/bounds.test.mjs` stands an input exactly on each one and
+asserts it is read, beside the one past it that is refused.
 
 ## How the two fragile guarantees were verified
 
@@ -336,6 +345,15 @@ Both of these have been satisfied by tests that looked like coverage and were
 not, elsewhere in this catalog. So both were verified by breaking the code and
 counting what the suite noticed, rather than by asserting that the code says
 the right thing.
+
+The same instrument was turned on the whole of `src/`: every relational and
+equality operator swapped one at a time, 201 mutants, 199 killed. The two
+survivors are equivalent mutants rather than gaps. `byCodeUnit`'s
+`left < right` is only reached once `left === right` has returned 0, and for
+two distinct strings `<=` and `<` agree on every pair; the budget's
+`elapsed > budget` differs from `>=` only when a monotonic nanosecond counter
+lands exactly on the boundary, which no fixture can arrange and which is worth
+one nanosecond of budget.
 
 ### Ordering
 

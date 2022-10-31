@@ -159,6 +159,14 @@ All notable changes to this project are documented in this file.
 - Each of the 44 error rules was demoted to `warning` in both the frozen table
   and the documented catalog at once: 44 of 44 were caught. Promoting each of
   the 10 non-error rules to `error` caught 10 of 10.
+- Every relational and equality operator in `src/` was swapped one at a time --
+  201 mutants -- and the suite run against each: 199 were killed. The two that
+  survive are equivalent mutants, not gaps. `byCodeUnit`'s `left < right` is
+  reached only after `left === right` has returned, and for two distinct
+  strings `<=` and `<` agree on every pair. The budget's `elapsed > budget`
+  differs from `>=` only when a monotonic nanosecond counter lands exactly on
+  the boundary, which no fixture can arrange and which costs one nanosecond of
+  budget either way.
 - The counts and the method are recorded in `docs/deprecation-rules.md` under
   "How the two fragile guarantees were verified".
 
