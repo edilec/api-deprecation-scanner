@@ -23,7 +23,8 @@ import { compileInventory } from './inventory.mjs'
 import { describeCoverageGaps, joinUsage } from './join.mjs'
 import { checkSpecCrossReferences, compileSpec } from './spec.mjs'
 import {
-  byCodeUnit, decodeUtf8, exceedsDepth, excerpt, hasForbiddenCharacter, isPlainObject, parseInstant,
+  byCodeUnit, decodeUtf8, exceedsDepth, excerpt, hasForbiddenCharacter, isPlainObject,
+  parseFailureDetail, parseInstant,
 } from './text.mjs'
 
 export const TOOL_ID = 'api-deprecation-scanner'
@@ -411,7 +412,7 @@ async function loadJson(sink, file, real, limits) {
     sink.add({
       file,
       ruleId: 'input-not-json',
-      message: `${file} is not valid JSON: ${error.message}`,
+      message: `${file} is not valid JSON: ${parseFailureDetail(error)}.`,
       suggestion: 'Validate the file with a JSON parser before re-running.',
     })
     return null
@@ -724,5 +725,5 @@ export {
 export {
   EXCERPT_LIMIT, MAX_IDENTIFIER_LENGTH, byCodeUnit, decodeUtf8, describeValue,
   escapePointerToken, exceedsDepth, excerpt, hasForbiddenCharacter, isIdentifier,
-  isPlainObject, parseInstant,
+  isPlainObject, parseFailureDetail, parseInstant,
 } from './text.mjs'

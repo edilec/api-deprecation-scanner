@@ -280,6 +280,17 @@ asserting the error count and the printed severity word with literal values.
 | `too-many-findings` | error | the run produced more findings than `maxFindings` |
 | `time-limit-exceeded` | error | the join ran past `maxMilliseconds` and stopped |
 
+`input-not-json` names the position, line and column the parse failed at, and
+nothing else. V8 reports a parse failure two ways and one of them quotes the
+input back -- `Unexpected token 'A', "AKIAIOSFODNN7EXAMPLE" is not valid JSON`
+-- which reproduces the first ten characters of the document, or the whole
+document when it is shorter than that. A file short enough to be nothing but a
+credential would therefore be published in full by its own error message, on
+the one path an untrusted file is guaranteed to take. Sanitising does not help:
+the snippet is at the front of the message and `excerpt` cuts from the end. The
+quoted half is dropped before the message is built; the offset, which says
+nothing about content, is kept whole.
+
 ## Report, ordering and exit codes
 
 stdout carries the JSON report and nothing else. stderr carries the human

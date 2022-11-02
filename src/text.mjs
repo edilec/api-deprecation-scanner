@@ -154,6 +154,55 @@ export function describeValue(value) {
 }
 
 /**
+ * Say what a JSON parse failure was, without reproducing the document.
+ *
+ * V8 reports a parse failure two ways, and one of them quotes the input back:
+ * `Unexpected token 'A', "AKIAIOSFODNN7EXAMPLE" is not valid JSON`. The quoted
+ * run is the first ten characters of the document, or the whole document when
+ * it is shorter than that -- so a file short enough to be nothing but a
+ * credential is reproduced in full by its own error message, and interpolating
+ * that message into a finding walks the secret straight onto stdout. Neither
+ * `excerpt` nor `sanitise` helps: the snippet is at the front of the message
+ * and both cut from the end.
+ *
+ * Position, line and column are the useful half and carry no content, so they
+ * are kept whole. The quoted half never leaves this function. The closing
+ * guard is deliberate belt and braces: every parse message V8 emits without a
+ * snippet quotes JSON punctuation with apostrophes and contains no double
+ * quote at all, so a double quote surviving to the end means a wording this
+ * function has not been taught, and the generic sentence is returned instead.
+ */
+export function parseFailureDetail(error) {
+  const message = String(error?.message ?? '')
+  const detail = describeParseFailure(message)
+  return detail.includes('"') ? UNPARSEABLE : detail
+}
+
+const UNPARSEABLE = 'the document could not be parsed as JSON'
+
+/** Where V8 puts the offending offset. Safe: an offset says nothing about content. */
+const POSITION = /at position \d+(?: \(line \d+ column \d+\))?/
+
+/**
+ * The shape that quotes the input. A leading `...` means the quoted run was
+ * taken from the middle of the document rather than its start, which is the
+ * only thing about the position this shape reveals.
+ */
+const QUOTES_THE_INPUT = /^Unexpected token (.+?), (\.\.\.)?".*"(?:\.\.\.)? is not valid JSON$/s
+
+function describeParseFailure(message) {
+  const quoting = QUOTES_THE_INPUT.exec(message)
+  if (quoting !== null) {
+    const where = quoting[2] === undefined ? 'at the start of the document' : 'inside the document'
+    return `unexpected token ${quoting[1]} ${where}`
+  }
+  const position = POSITION.exec(message)
+  if (position !== null) return message.slice(0, position.index + position[0].length)
+  if (message === 'Unexpected end of JSON input') return message
+  return UNPARSEABLE
+}
+
+/**
  * Decode bytes as UTF-8, strictly.
  *
  * `fatal: true` is the whole point. Decoding leniently and then hunting for
