@@ -168,6 +168,28 @@ test('the coverage window and the API version are gaps in their own right', asyn
   )
 })
 
+test('a version mismatch never renders two different raw versions as the same explanation', async () => {
+  const clean = fixture([current()], [consumer({ calls: [call({ operationId: 'listInvoices' })] })])
+  clean['openapi.json'].info.version = '2.4  .0'
+  clean['usage.json'].coverage.apiVersion = '2.4  .0'
+  const equal = await apiReport(clean)
+  assert.equal(equal.status, 'pass')
+  assert.equal(findingsFor(equal, 'coverage-version-mismatch').length, 0)
+
+  clean['usage.json'].coverage.apiVersion = '2.4 .0'
+  const mismatched = await apiReport(clean)
+  assert.equal(mismatched.status, 'incomplete')
+  const message = findingsFor(mismatched, 'coverage-version-mismatch')[0].message
+  assert.match(message, /raw UTF-16 offset 4: U\+002E versus U\+0020/)
+  assert.doesNotMatch(message, /version "2\.4 \.0" but the document declares "2\.4 \.0"/)
+
+  clean['openapi.json'].info.version = `${'A'.repeat(65)}X`
+  clean['usage.json'].coverage.apiVersion = `${'A'.repeat(65)}Y`
+  const truncated = await apiReport(clean)
+  assert.match(findingsFor(truncated, 'coverage-version-mismatch')[0].message,
+    /raw UTF-16 offset 65: U\+0059 versus U\+0058/)
+})
+
 test('the scan clock is the one that was passed in, not the day the test ran', async () => {
   // Same bytes, two clocks, two different verdicts -- and neither depends on
   // when this test is executed.
