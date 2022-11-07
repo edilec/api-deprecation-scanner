@@ -62,6 +62,45 @@ test('an incomplete run says so on stderr as well as in the report', async () =>
   assert.match(stderr, /incomplete: 1 coverage gap\(s\) and 0 unevaluated entr\(ies\); a consumer absent from this inventory is unknown, not safe\. This run is not a pass\.\n$/)
 })
 
+test('visually empty API versions on both sides cannot make a passing join', async () => {
+  const clean = fixture(operations(), [consumer()])
+  const good = await cliReport(clean)
+  assert.equal(good.code, 0)
+  assert.equal(good.report.status, 'pass')
+  assert.equal(good.report.summary.checked, 2)
+
+  const invisible = String.fromCharCode(0x34f)
+  clean['openapi.json'].info.version = invisible
+  clean['usage.json'].coverage.apiVersion = invisible
+  const refused = await cliReport(clean)
+  assert.equal(refused.code, 2)
+  assert.equal(refused.report.status, 'incomplete')
+  assert.equal(refused.report.summary.checked, 0)
+  assert.deepEqual(refused.report.findings.filter((row) => row.ruleId === 'spec-invalid')
+    .map((row) => row.location.pointer), ['/info/version'])
+  assert.deepEqual(refused.report.findings.filter((row) => row.ruleId === 'coverage-invalid')
+    .map((row) => row.location.pointer), ['/coverage/apiVersion'])
+  assert.equal(refused.report.findings.some((row) => row.ruleId === 'deprecated-operation-in-use'), false)
+  assert.equal(refused.stdout.includes(invisible), false)
+  assert.equal(refused.stderr.includes(invisible), false)
+})
+
+test('an ignorable character inside either version is refused without echoing it', async () => {
+  const invisible = String.fromCharCode(0x34f)
+  for (const side of ['spec', 'inventory']) {
+    const files = fixture(operations(), [consumer()])
+    if (side === 'spec') files['openapi.json'].info.version = `2.4.${invisible}0`
+    else files['usage.json'].coverage.apiVersion = `2.4.${invisible}0`
+    const refused = await cliReport(files)
+    assert.equal(refused.code, 2, side)
+    assert.equal(refused.report.status, 'incomplete', side)
+    assert.equal(refused.report.findings.some((row) => row.ruleId === 'coverage-version-mismatch'), false, side)
+    assert.equal(refused.report.findings.some((row) => row.ruleId === (side === 'spec' ? 'spec-invalid' : 'coverage-invalid')), true, side)
+    assert.equal(refused.stdout.includes(invisible), false, side)
+    assert.equal(refused.stderr.includes(invisible), false, side)
+  }
+})
+
 test('--root is required, and a configuration error leaves stdout empty', async () => {
   const result = await cliRun(['--now', NOW])
   assert.equal(result.code, 2)

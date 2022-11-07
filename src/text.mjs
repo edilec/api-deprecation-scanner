@@ -30,7 +30,7 @@ export function byCodeUnit(left, right) {
 }
 
 /**
- * The characters no untrusted value may carry into output, in four classes.
+ * The characters no untrusted value may carry into output, in five classes.
  *
  * Built from code points rather than written literally: a literal U+2028 or
  * U+2029 inside a module is a line terminator to the JavaScript parser, and
@@ -51,6 +51,9 @@ export function byCodeUnit(left, right) {
  *   than the one the join actually matched. Ordinary right-to-left text --
  *   Arabic, Hebrew -- needs none of these: the letters carry their own
  *   direction, so refusing the overrides refuses nothing legitimate.
+ * - **Default-ignorable code points** (including U+034F and U+200B). They can
+ *   make two different identities look identical, or make an all-ignorable
+ *   version look present when its rendered evidence is empty.
  */
 const DEL_AND_C1 = `${String.fromCharCode(0x7f)}-${String.fromCharCode(0x9f)}`
 const SEPARATORS = `${String.fromCharCode(0x2028)}${String.fromCharCode(0x2029)}`
@@ -76,7 +79,7 @@ const CONTROL = new RegExp(
 )
 
 /**
- * What an identifier may not contain: the same four classes, plus the three
+ * What an identifier may not contain: the same five classes, plus the three
  * ASCII whitespace controls `CONTROL` leaves to the collapse. An identifier
  * gets no second pass, because an operation id or a consumer id that prints
  * differently from the value the join actually matched is a value nobody can
@@ -86,14 +89,17 @@ const FORBIDDEN_IN_IDENTIFIER = new RegExp(
   `[${String.fromCharCode(0)}-${String.fromCharCode(31)}` +
   `${DEL_AND_C1}${SEPARATORS}${BIDI}]`,
 )
+const DEFAULT_IGNORABLE = /\p{Default_Ignorable_Code_Point}/u
+const DEFAULT_IGNORABLES = /\p{Default_Ignorable_Code_Point}/gu
 
 /**
- * Detects any of the four classes anywhere in a string. Exported so tests can
+ * Detects any of the five classes anywhere in a string. Exported so tests can
  * walk a whole report and assert that nothing survived anywhere, rather than
  * checking the one field a developer remembered to sanitise.
  */
 export function hasForbiddenCharacter(value) {
-  return FORBIDDEN_IN_IDENTIFIER.test(String(value))
+  const text = String(value)
+  return FORBIDDEN_IN_IDENTIFIER.test(text) || DEFAULT_IGNORABLE.test(text)
 }
 
 export const EXCERPT_LIMIT = 160
@@ -109,7 +115,7 @@ export const MAX_IDENTIFIER_LENGTH = 200
  * never emitted.
  */
 export function excerpt(value, limit = EXCERPT_LIMIT) {
-  const flattened = String(value).replace(CONTROL, ' ').replace(/\s+/g, ' ').trim()
+  const flattened = String(value).replace(CONTROL, ' ').replace(DEFAULT_IGNORABLES, ' ').replace(/\s+/g, ' ').trim()
   if (flattened.length <= limit) return flattened
   return `${flattened.slice(0, limit)}...`
 }
@@ -127,7 +133,7 @@ export function isIdentifier(value) {
   if (typeof value !== 'string') return false
   if (value.length === 0 || value.length > MAX_IDENTIFIER_LENGTH) return false
   if (value.trim() !== value) return false
-  return !FORBIDDEN_IN_IDENTIFIER.test(value)
+  return !hasForbiddenCharacter(value)
 }
 
 /**

@@ -179,6 +179,18 @@ test('the identifier rule refuses the three ASCII whitespace controls too', () =
   assert.equal(isIdentifier(42), false)
 })
 
+test('default-ignorable code points are not identities or invisible prose', () => {
+  for (const code of [0x034f, 0x200b]) {
+    const invisible = String.fromCharCode(code)
+    assert.equal(isIdentifier(invisible), false)
+    assert.equal(isIdentifier(`2.4.${invisible}0`), false)
+    assert.equal(hasForbiddenCharacter(invisible), true)
+    assert.equal(excerpt(`a${invisible}b`), 'a b')
+  }
+  assert.equal(isIdentifier('2.4.0'), true)
+  assert.equal(excerpt('a b'), 'a b')
+})
+
 test('every excerpt is bounded, and says it was cut', () => {
   assert.equal(excerpt('x'.repeat(EXCERPT_LIMIT)), 'x'.repeat(EXCERPT_LIMIT))
   assert.equal(excerpt('x'.repeat(EXCERPT_LIMIT + 1)), `${'x'.repeat(EXCERPT_LIMIT)}...`)
