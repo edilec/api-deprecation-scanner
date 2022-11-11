@@ -27,21 +27,11 @@ export function describeCoverageGaps(sink, file, inventory, spec, now, policy, l
 
   if (coverage.apiVersion !== spec.version) {
     gaps.push('version')
-    const observed = excerpt(coverage.apiVersion, 60)
-    const declared = excerpt(spec.version, 60)
-    // The excerpt folds whitespace and truncates long values. When that makes
-    // two distinct versions look alike, identify the raw difference instead
-    // of telling the reader that a version changed into itself.
-    const distinction = observed === declared
-      ? ` At raw UTF-16 offset ${firstDifferentUnit(coverage.apiVersion, spec.version)}: ${unitAtDifference(coverage.apiVersion, spec.version)}.`
-      : ''
     sink.add({
       file,
       ruleId: 'coverage-version-mismatch',
       pointer: '/coverage/apiVersion',
-      message: observed === declared
-        ? `The usage and document versions both render as "${observed}", but their raw values differ.${distinction} This inventory is not evidence about the operations that were scanned.`
-        : `The usage was observed against API version "${observed}" but the document declares "${declared}", so this inventory is not evidence about the operations that were scanned.`,
+      message: "The inventory's /coverage/apiVersion differs from the document's /info/version; this inventory is not evidence about the operations that were scanned.",
       suggestion: 'Scan the document the usage was recorded against, or re-record the usage against this one.',
     })
   }
@@ -81,20 +71,6 @@ export function describeCoverageGaps(sink, file, inventory, spec, now, policy, l
     gaps.push('empty')
   }
   return gaps
-}
-
-function firstDifferentUnit(left, right) {
-  let offset = 0
-  while (offset < left.length && offset < right.length && left.charCodeAt(offset) === right.charCodeAt(offset)) offset += 1
-  return offset
-}
-
-function unitAtDifference(left, right) {
-  const offset = firstDifferentUnit(left, right)
-  const format = (value) => offset < value.length
-    ? `U+${value.charCodeAt(offset).toString(16).toUpperCase().padStart(4, '0')}`
-    : '<end>'
-  return `${format(left)} versus ${format(right)}`
 }
 
 /**

@@ -164,30 +164,66 @@ test('the coverage window and the API version are gaps in their own right', asyn
   assert.equal(findingsFor(mismatched, 'coverage-version-mismatch').length, 1)
   assert.equal(
     findingsFor(mismatched, 'coverage-version-mismatch')[0].message,
-    'The usage was observed against API version "1.9.0" but the document declares "2.4.0", so this inventory is not evidence about the operations that were scanned.',
+    "The inventory's /coverage/apiVersion differs from the document's /info/version; this inventory is not evidence about the operations that were scanned.",
   )
 })
 
-test('a version mismatch never renders two different raw versions as the same explanation', async () => {
+test('equal version identities remain a clean comparison', async () => {
   const clean = fixture([current()], [consumer({ calls: [call({ operationId: 'listInvoices' })] })])
   clean['openapi.json'].info.version = '2.4  .0'
   clean['usage.json'].coverage.apiVersion = '2.4  .0'
   const equal = await apiReport(clean)
   assert.equal(equal.status, 'pass')
   assert.equal(findingsFor(equal, 'coverage-version-mismatch').length, 0)
+})
 
-  clean['usage.json'].coverage.apiVersion = '2.4 .0'
-  const mismatched = await apiReport(clean)
-  assert.equal(mismatched.status, 'incomplete')
-  const message = findingsFor(mismatched, 'coverage-version-mismatch')[0].message
-  assert.match(message, /raw UTF-16 offset 4: U\+002E versus U\+0020/)
-  assert.doesNotMatch(message, /version "2\.4 \.0" but the document declares "2\.4 \.0"/)
+test('version mismatch reports field positions without a synthetic canary in JSON or human output', async () => {
+  const files = fixture([current()], [consumer({ calls: [call({ operationId: 'listInvoices' })] })])
+  files['usage.json'].coverage.apiVersion = 'token=SYNTHETIC_SECRET_CANARY'
+  const json = await cliReport(files)
+  const human = await cliHuman(files)
 
-  clean['openapi.json'].info.version = `${'A'.repeat(65)}X`
-  clean['usage.json'].coverage.apiVersion = `${'A'.repeat(65)}Y`
-  const truncated = await apiReport(clean)
-  assert.match(findingsFor(truncated, 'coverage-version-mismatch')[0].message,
-    /raw UTF-16 offset 65: U\+0059 versus U\+0058/)
+  for (const result of [json, human]) {
+    assert.equal(result.code, 2)
+    assert.equal(result.report.status, 'incomplete')
+    assert.equal(result.report.summary.coverageGaps, 1)
+    const gap = findingsFor(result.report, 'coverage-version-mismatch')
+    assert.equal(gap.length, 1)
+    assert.equal(gap[0].severity, 'error')
+    assert.equal(gap[0].location.file, 'usage.json')
+    assert.equal(gap[0].location.pointer, '/coverage/apiVersion')
+    assert.equal(result.stdout.includes('SYNTHETIC_SECRET_CANARY'), false)
+    assert.equal(result.stderr.includes('SYNTHETIC_SECRET_CANARY'), false)
+    assert.equal(gap[0].message,
+      "The inventory's /coverage/apiVersion differs from the document's /info/version; this inventory is not evidence about the operations that were scanned.")
+  }
+  assert.equal(human.stderr.includes('coverage-version-mismatch'), true)
+})
+
+test('render-collapsed differences on either side and hidden suffixes stay incomplete without a raw-unit oracle', async () => {
+  const values = [
+    ['2.4  .0', '2.4 .0'],
+    ['2.4 .0', '2.4  .0'],
+    [`${'A'.repeat(65)}X`, `${'A'.repeat(65)}Y`],
+  ]
+  for (const [specVersion, usageVersion] of values) {
+    const files = fixture([current()], [consumer({ calls: [call({ operationId: 'listInvoices' })] })])
+    files['openapi.json'].info.version = specVersion
+    files['usage.json'].coverage.apiVersion = usageVersion
+    const json = await cliReport(files)
+    const human = await cliHuman(files)
+    for (const result of [json, human]) {
+      assert.equal(result.code, 2)
+      assert.equal(result.report.status, 'incomplete')
+      assert.equal(result.report.summary.coverageGaps, 1)
+      const gap = findingsFor(result.report, 'coverage-version-mismatch')
+      assert.equal(gap.length, 1)
+      assert.equal(gap[0].location.pointer, '/coverage/apiVersion')
+      assert.doesNotMatch(result.stdout + result.stderr, /raw UTF-16|U\+[0-9A-F]{4}/u)
+      assert.equal(gap[0].message,
+        "The inventory's /coverage/apiVersion differs from the document's /info/version; this inventory is not evidence about the operations that were scanned.")
+    }
+  }
 })
 
 test('the scan clock is the one that was passed in, not the day the test ran', async () => {
