@@ -132,9 +132,10 @@ what turns "nobody calls this" into "nobody among the four I looked at".
 Both documents are decoded with `TextDecoder('utf-8', { fatal: true })`, and an
 unknown key anywhere in the inventory is refused rather than ignored: a
 `consumersKnwon` that is silently dropped turns a coverage gap into a green run.
-API version identities must also be printable: an empty-looking version made
-only of default-ignorable Unicode characters, or a hidden character embedded
-in a version, makes the run `incomplete` rather than a matching-version pass.
+API version identities must also render unchanged: an empty-looking version
+made only of default-ignorable Unicode characters, a hidden character, a
+non-breaking space, or whitespace that collapses when displayed makes the run
+`incomplete` rather than a matching-version pass.
 The rejected version is located in a finding, not echoed into the report.
 
 ## What the report says

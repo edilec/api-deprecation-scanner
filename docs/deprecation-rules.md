@@ -140,6 +140,11 @@ as naming no replacement: both absences would contradict the
 | `consumers[].calls[].count` | yes | integer of at least 1; zero is not a call, omit the entry |
 | `consumers[].calls[].lastSeen` | yes | full ISO-8601 UTC instant |
 
+Identifiers used as join keys, paths, or API versions must survive report
+rendering unchanged within the 200-character identifier bound. Non-breaking
+spaces and repeated whitespace that would display as one ordinary space are
+refused before a comparison is made.
+
 An unknown key at any level is refused rather than ignored. A `consumersKnwon`
 that is silently dropped turns "three of twelve consumers were examined" into
 "all known consumers were examined", which is a green run built on a typo.

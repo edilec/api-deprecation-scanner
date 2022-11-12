@@ -127,13 +127,14 @@ export function excerpt(value, limit = EXCERPT_LIMIT) {
  * printed. A control character in one of them is refused at the door rather
  * than cleaned up on the way out, because a value that prints differently from
  * the value that was joined cannot be checked by the person reading the
- * report.
+ * report. Compare at the full identifier bound: report excerpts may be shorter
+ * without making a legal 161-200-character identifier unusable.
  */
 export function isIdentifier(value) {
   if (typeof value !== 'string') return false
   if (value.length === 0 || value.length > MAX_IDENTIFIER_LENGTH) return false
   if (value.trim() !== value) return false
-  return !hasForbiddenCharacter(value)
+  return !hasForbiddenCharacter(value) && excerpt(value, MAX_IDENTIFIER_LENGTH) === value
 }
 
 /**

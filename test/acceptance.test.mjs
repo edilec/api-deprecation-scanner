@@ -168,13 +168,41 @@ test('the coverage window and the API version are gaps in their own right', asyn
   )
 })
 
-test('equal version identities remain a clean comparison', async () => {
+test('equal render-faithful version identities remain a clean comparison', async () => {
   const clean = fixture([current()], [consumer({ calls: [call({ operationId: 'listInvoices' })] })])
-  clean['openapi.json'].info.version = '2.4  .0'
-  clean['usage.json'].coverage.apiVersion = '2.4  .0'
+  clean['openapi.json'].info.version = '2.4 .0'
+  clean['usage.json'].coverage.apiVersion = '2.4 .0'
   const equal = await apiReport(clean)
   assert.equal(equal.status, 'pass')
   assert.equal(findingsFor(equal, 'coverage-version-mismatch').length, 0)
+})
+
+test('a version whose rendering changes is invalid on either comparison side', async () => {
+  const base = '2.4 0'
+  const filesFor = (specVersion, coverageVersion) => {
+    const files = fixture([current()], [consumer({ calls: [call({ operationId: 'listInvoices' })] })])
+    files['openapi.json'].info.version = specVersion
+    files['usage.json'].coverage.apiVersion = coverageVersion
+    return files
+  }
+  const equal = await apiReport(filesFor(base, base))
+  assert.equal(equal.status, 'pass')
+  assert.equal(findingsFor(equal, 'coverage-version-mismatch').length, 0)
+  const visible = await apiReport(filesFor('2.5 0', base))
+  assert.equal(visible.status, 'incomplete')
+  assert.equal(findingsFor(visible, 'coverage-version-mismatch').length, 1)
+
+  for (const altered of [`2.4${String.fromCharCode(0xa0)}0`, '2.4  0']) {
+    for (const side of ['spec', 'coverage']) {
+      const report = await apiReport(filesFor(side === 'spec' ? altered : base, side === 'coverage' ? altered : base))
+      const ruleId = side === 'spec' ? 'spec-invalid' : 'coverage-invalid'
+      assert.equal(report.status, 'incomplete', side)
+      assert.equal(findingsFor(report, ruleId).length, 1, side)
+      assert.equal(findingsFor(report, ruleId)[0].location.pointer,
+        side === 'spec' ? '/info/version' : '/coverage/apiVersion')
+      assert.equal(findingsFor(report, 'coverage-version-mismatch').length, 0, side)
+    }
+  }
 })
 
 test('version mismatch reports field positions without a synthetic canary in JSON or human output', async () => {
@@ -200,10 +228,8 @@ test('version mismatch reports field positions without a synthetic canary in JSO
   assert.equal(human.stderr.includes('coverage-version-mismatch'), true)
 })
 
-test('render-collapsed differences on either side and hidden suffixes stay incomplete without a raw-unit oracle', async () => {
+test('long hidden suffix differences stay incomplete without a raw-unit oracle', async () => {
   const values = [
-    ['2.4  .0', '2.4 .0'],
-    ['2.4 .0', '2.4  .0'],
     [`${'A'.repeat(65)}X`, `${'A'.repeat(65)}Y`],
   ]
   for (const [specVersion, usageVersion] of values) {
