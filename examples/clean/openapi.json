@@ -1,0 +1,51 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Billing API",
+    "version": "2.4.0"
+  },
+  "paths": {
+    "/v1/invoices": {
+      "get": {
+        "operationId": "listInvoicesV1",
+        "summary": "List invoices (version 1)",
+        "deprecated": true,
+        "x-deprecated-since": "2026-01-15",
+        "x-sunset": "2026-12-01T00:00:00Z",
+        "x-replacement": {
+          "operationId": "listInvoices",
+          "since": "2.2.0",
+          "docs": "https://docs.example.test/billing/migrations/invoices"
+        }
+      },
+      "post": {
+        "operationId": "createInvoiceV1",
+        "summary": "Create an invoice (version 1)",
+        "deprecated": true,
+        "x-deprecated-since": "2026-01-15",
+        "x-sunset": "2026-07-01",
+        "x-replacement": "createInvoice"
+      }
+    },
+    "/v1/reports": {
+      "get": {
+        "operationId": "listReportsV1",
+        "summary": "List reports (version 1)",
+        "deprecated": true,
+        "x-deprecated-since": "2025-11-01",
+        "x-sunset": "2027-01-01",
+        "x-replacement": {
+          "operationId": "listReports",
+          "since": "2.4.0"
+        }
+      }
+    },
+    "/v2/invoices": {
+      "get": { "operationId": "listInvoices", "summary": "List invoices" },
+      "post": { "operationId": "createInvoice", "summary": "Create an invoice" }
+    },
+    "/v2/reports": {
+      "get": { "operationId": "listReports", "summary": "List reports" }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Billing API",
+    "version": "2.4.0"
+  },
+  "webhooks": {
+    "invoicePaid": {
+      "post": {
+        "operationId": "invoicePaidWebhook",
+        "deprecated": true,
+        "x-sunset": "2026-05-01T00:00:00Z"
+      }
+    }
+  },
+  "paths": {
+    "/v1/invoices": {
+      "get": {
+        "operationId": "listInvoicesV1",
+        "summary": "List invoices (version 1)",
+        "deprecated": true,
+        "x-sunset-date": "2026-05-01",
+        "x-replacement": { "operationId": "listInvoices" }
+      }
+    },
+    "/v1/reports": {
+      "get": {
+        "operationId": "listReportsV1",
+        "summary": "List reports (version 1)",
+        "deprecated": true,
+        "x-sunset": "2026-09-01",
+        "x-replacement": { "operationId": "listReports" }
+      }
+    },
+    "/v2/invoices": {
+      "get": { "operationId": "listInvoices", "summary": "List invoices" }
+    },
+    "/v2/reports": {
+      "get": { "operationId": "listReports", "summary": "List reports" }
+    }
+  }
+}
