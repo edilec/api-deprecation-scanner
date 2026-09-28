@@ -12,6 +12,15 @@ the finding names the consumer, the date and where to send them instead.
 - **License:** MIT
 - **Runtime:** Node 22 or later, no dependencies
 
+## Operating context
+
+This CLI joins the supplied OpenAPI deprecation declarations to a supplied
+consumer-usage inventory at an explicit scan time. It cannot discover consumers
+missing from that inventory, prove replacement readiness, send HTTP deprecation
+signals, or authorize an API shutdown. The [Edilec API deprecation guide](https://edilec.com/blog/sofeng-11005/api-deprecation-consumer-inventory-sunset/)
+covers the wider work of identifying owners, managing migration, and enforcing a
+sunset with evidence.
+
 ## Install
 
 ```sh
