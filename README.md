@@ -15,8 +15,10 @@ the finding names the consumer, the date and where to send them instead.
 ## Install
 
 ```sh
-npm install api-deprecation-scanner
+npm install github:edilec/api-deprecation-scanner
 ```
+
+This installs the public GitHub source; `api-deprecation-scanner` is not published to npm.
 
 Or run it from a checkout with no install step at all — the package has no
 runtime and no development dependencies.
@@ -24,8 +26,8 @@ runtime and no development dependencies.
 ## Use
 
 ```sh
-api-deprecation-scanner --root examples/clean --now 2026-06-05T00:00:00Z
-api-deprecation-scanner --root examples/broken --now 2026-06-05T00:00:00Z --json | jq '.findings[].ruleId'
+npx api-deprecation-scanner --root examples/clean --now 2026-06-05T00:00:00Z
+npx api-deprecation-scanner --root examples/broken --now 2026-06-05T00:00:00Z --json | jq '.findings[].ruleId'
 ```
 
 The JSON report goes to stdout and nothing else does, so stdout pipes straight
